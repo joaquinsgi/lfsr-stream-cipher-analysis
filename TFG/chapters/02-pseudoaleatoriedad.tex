@@ -1,0 +1,356 @@
+\chapter{Pseudoaleatoriedad y propiedades estadísticas}
+
+En criptografía, la \textit{aleatoriedad} es un requisito fundamental. Una
+secuencia de bits que actúe como clave o como flujo cifrante debe ser
+impredecible y no mostrar patrones repetitivos que puedan ser explotados por un
+adversario. Sin embargo, obtener aleatoriedad verdadera no es trivial: requiere
+fuentes físicas como ruido electrónico, fluctuaciones cuánticas o fenómenos
+atmosféricos. Estos métodos, aunque útiles en algunos contextos, no siempre son
+viables en sistemas informáticos convencionales debido a su coste o
+complejidad.
+
+Por ello, en la práctica se utilizan \textbf{generadores de números
+pseudoaleatorios} (PRNG, por sus siglas en inglés). Estos algoritmos producen
+secuencias deterministas, pero diseñadas para que sus propiedades estadísticas
+sean indistinguibles de una secuencia verdaderamente aleatoria. En criptografía,
+cuando además ofrecen resistencia frente a ataques de predicción, se habla de
+\textbf{CSPRNG} (Cryptographically Secure PRNG).
+
+\section*{Aleatoriedad verdadera vs. pseudoaleatoriedad}
+
+Una secuencia aleatoria ideal cumple dos propiedades:
+\begin{enumerate}
+    \item Cada bit es independiente de los anteriores.
+    \item La probabilidad de obtener 0 o 1 es exactamente $1/2$.
+\end{enumerate}
+
+En contraste, un generador pseudoaleatorio produce secuencias totalmente
+deterministas a partir de una semilla inicial. La clave está en que, si el
+algoritmo es robusto, el resultado debe ser \textit{indistinguible} de una
+secuencia aleatoria para un adversario con capacidad de cómputo acotada.
+
+\medskip
+\noindent\textit{Observación práctica.}
+En la práctica, ninguna fuente física ni generador determinista cumple a la perfección estas propiedades.
+Los generadores de hardware pueden verse afectados por ruido ambiental, fallos de calibración o incluso manipulación adversaria.
+Los generadores puramente software heredan limitaciones matemáticas (ciclos finitos, correlaciones residuales).
+La pseudoaleatoriedad moderna se entiende, por tanto, como un compromiso: producir secuencias que, sin ser aleatorias en sentido estricto, resistan cualquier intento eficiente de distinción por parte de un adversario.
+
+
+\section*{Clasificación de generadores pseudoaleatorios}
+
+Existen distintas familias de generadores, cada una con características y
+aplicaciones específicas:
+
+\begin{itemize}
+    \item \textbf{Generadores lineales congruenciales (LCG)}: definidos por la
+    recurrencia $X_{n+1} = (aX_n + c) \bmod m$. Son muy eficientes, pero su
+    calidad estadística es insuficiente para aplicaciones criptográficas.
+
+    \item \textbf{Generadores basados en registros de desplazamiento}: como los
+    LFSR, ampliamente estudiados en este trabajo. Ofrecen periodos largos y gran
+    velocidad, pero presentan debilidades frente a ataques de reconstrucción de
+    estado.
+
+    \item \textbf{Generadores basados en criptografía de bloque}: por ejemplo,
+    el uso de AES en modo contador (AES-CTR). Proporcionan alta seguridad, pero
+    a costa de mayor consumo computacional.
+
+    \item \textbf{Generadores basados en funciones hash}: se apoyan en la
+    resistencia de funciones hash como SHA--256 para producir secuencias
+    indistinguibles de aleatorias.
+
+    \item \textbf{Generadores híbridos}: combinan distintas técnicas (por
+    ejemplo, ruido físico como semilla más un PRNG software) para equilibrar
+    seguridad y rendimiento.
+\end{itemize}
+
+\medskip
+\noindent\textit{Periodo y eficiencia.}
+Una característica clave en esta clasificación es el \textit{periodo}, es decir, la longitud máxima antes de que una secuencia empiece a repetirse.
+Mientras que los LCG pueden presentar periodos del orden de $10^6$ o $10^9$, los generadores basados en LFSR alcanzan valores exponenciales en el grado del polinomio.
+En contraste, esquemas como AES--CTR o los basados en SHA no presentan un límite práctico observable, ya que su ciclo efectivo está más allá de cualquier capacidad computacional realista.
+Este contraste entre eficiencia y robustez estadística guía la selección de un PRNG en función de la aplicación.
+
+La elección del generador depende del equilibrio entre coste computacional,
+requisitos de seguridad y disponibilidad de recursos.
+
+\subsection*{Importancia de la aleatoriedad en criptografía}
+
+La seguridad de numerosos protocolos criptográficos depende de la calidad de los
+números aleatorios empleados. Por ejemplo, en el intercambio de claves mediante
+el protocolo Diffie–Hellman, la elección de parámetros y exponentes secretos debe
+ser impredecible: un generador deficiente podría permitir a un adversario
+anticipar claves y romper el sistema. De manera similar, en firmas digitales como
+RSA o ECDSA, el uso de valores aleatorios sesgados ha conducido en el pasado a la
+recuperación de claves privadas a partir de firmas observadas.
+
+La aleatoriedad también resulta crítica en esquemas de inicialización de cifrados
+por bloques (IVs), en la construcción de sal para el almacenamiento seguro de
+contraseñas, y en sistemas de autenticación. En todos estos contextos, un
+generador pseudoaleatorio débil constituye un eslabón vulnerable que compromete la
+seguridad completa del sistema, independientemente de la robustez matemática de la
+primitiva criptográfica principal.
+
+
+\section*{Postulados de Golomb}
+
+Golomb propuso en 1967 tres propiedades estadísticas que sirven como primera
+aproximación para evaluar secuencias binarias pseudoaleatorias:
+
+\begin{enumerate}
+    \item \textbf{Balance}: en una secuencia de longitud $N$, el número de unos
+    y ceros debe diferir a lo sumo en una unidad:
+    \[
+    \left| \#1 - \#0 \right| \leq 1.
+    \]
+
+    \item \textbf{Distribución de rachas}: el número de rachas de longitud $k$
+    debe aproximarse a la mitad del número de rachas de longitud $k-1$. Esto
+    implica que las rachas largas son poco frecuentes y las cortas abundan.
+
+    \item \textbf{Autocorrelación}: el corrimiento de la secuencia $k$ posiciones
+    respecto a sí misma debe producir aproximadamente el mismo número de
+    coincidencias que discrepancias. La autocorrelación se define como:
+    \[
+    C(k) = \sum_{i=1}^{N} (-1)^{x_i \oplus x_{i+k}},
+    \]
+    y debe ser cercana a cero para todo $k \neq 0$.
+\end{enumerate}
+
+\subsection*{Limitaciones de los postulados de Golomb}
+Aunque útiles como primer criterio, los postulados de Golomb presentan limitaciones importantes:
+\begin{itemize}
+  \item No detectan correlaciones de largo alcance ni dependencias no lineales.
+  \item Secuencias que los cumplen pueden seguir siendo predecibles mediante algoritmos algebraicos.
+  \item Son sensibles al tamaño de muestra: secuencias cortas tienden a violarlos, aunque el generador sea adecuado.
+\end{itemize}
+Por estas razones, los postulados se emplean como una comprobación preliminar, que debe complementarse con baterías estadísticas más completas como las del NIST o TestU01.
+
+\subsection*{Casos históricos de fallos por mala aleatoriedad}
+
+Existen múltiples ejemplos documentados donde la falta de una adecuada
+pseudoaleatoriedad ha tenido consecuencias graves:
+
+\begin{itemize}
+    \item \textbf{Debilidad en Netscape SSL (1995)}: la generación de claves
+    dependía del reloj del sistema y de procesos predecibles, lo que permitió a
+    atacantes reconstruir claves de sesión.
+
+    \item \textbf{Vulnerabilidades en Debian OpenSSL (2006–2008)}: una modificación
+    en el código redujo drásticamente el espacio de claves posibles, haciendo que
+    certificados y claves SSH fueran fácilmente predecibles.
+
+    \item \textbf{Ataques a GSM/A5/1}: el uso de LFSR con combinaciones débiles
+    mostró que, pese a producir secuencias de largo periodo, se podía explotar la
+    correlación entre registros para recuperar claves en tiempo práctico.
+
+    \item \textbf{Previsibilidad en generadores de hardware defectuosos}: en ciertos
+    dispositivos IoT se han documentado PRNG que reutilizan semillas o carecen de
+    suficiente entropía inicial, permitiendo ataques remotos para predecir tokens
+    de autenticación.
+\end{itemize}
+
+Estos casos ilustran que el problema de la aleatoriedad no es teórico, sino un
+factor determinante en la seguridad de sistemas reales.
+
+\subsection*{Ejemplo ilustrativo}
+
+Consideremos la secuencia $S = 11001010111100011101$ de longitud $20$. El
+análisis es el siguiente:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{l|c}
+Número de unos & 11 \\
+Número de ceros & 9 \\
+Diferencia & 2 \\
+Rachas de 1 bit & 5 \\
+Rachas de 2 bits & 3 \\
+Rachas de 3 bits & 1 \\
+\end{tabular}
+\caption{Ejemplo de análisis de balance y rachas en una secuencia corta.}
+\end{table}
+
+En este ejemplo, el balance se aproxima al ideal, las rachas siguen la
+proporción esperada y la autocorrelación en desplazamientos pequeños no revela
+patrones fuertes. Sin embargo, por ser una secuencia corta no se cumplen de
+forma exacta los postulados.
+
+\section*{Pruebas estadísticas del NIST}
+
+Para un análisis más exhaustivo, el NIST (National Institute of Standards and
+Technology) definió en el documento SP~800--22 una batería de quince pruebas
+diferentes. Estas evalúan aspectos como equilibrio, distribución de patrones,
+entropía y ausencia de estructuras repetitivas. En este trabajo se seleccionan
+las siguientes, por su relevancia y relación directa con las debilidades de los
+LFSR:
+
+\begin{itemize}
+    \item \textbf{Monobit}: comprueba que la proporción de unos y ceros es
+    cercana al 50\%. El estadístico se define como
+    \[
+    S_n = \sum_{i=1}^{n} (2x_i - 1), \quad
+    p = \operatorname{erfc}\left( \frac{|S_n|}{\sqrt{2n}} \right).
+    \]
+
+    \item \textbf{Frecuencia por bloques}: divide la secuencia en bloques de
+    tamaño $M$ y mide la proporción de unos en cada bloque. Detecta sesgos
+    locales invisibles al test monobit global.
+
+    \item \textbf{Rachas}: evalúa la cantidad y longitud de las rachas de bits
+    iguales consecutivos. Una secuencia aleatoria debería presentar una
+    distribución predecible de rachas cortas y largas.
+
+    \item \textbf{Sumas acumulativas (CUSUM)}: interpreta la secuencia como una
+    caminata aleatoria y mide la desviación máxima de la suma parcial respecto a
+    cero. Indica si hay un sesgo acumulado hacia 0s o 1s.
+
+    \item \textbf{Entropía aproximada}: compara la frecuencia de patrones de
+    longitud $m$ y $m+1$. El p--valor bajo indica que algunos patrones aparecen
+    con más frecuencia de lo esperado.
+
+    \item \textbf{Maurer}: mide la compresibilidad de la secuencia. Una cadena
+    con patrones repetidos puede comprimirse, mientras que una secuencia
+    aleatoria no.
+
+    \item \textbf{Serial}: analiza la distribución de todos los patrones de
+    longitud $m$. Si ciertos patrones son anormalmente frecuentes o infrecuentes,
+    la prueba falla.
+\end{itemize}
+
+\noindent\textit{Cobertura de la batería.}
+Además de estas pruebas, el NIST incluye otras como el test de transformada discreta de Fourier (DFT), coincidencias en plantilla y complejidad lineal.
+Aunque en este trabajo no se aplican en su totalidad por razones prácticas, cada prueba está orientada a detectar patrones específicos que podrían pasar inadvertidos en otras.
+En consecuencia, la combinación de varios tests proporciona una visión más completa de la calidad pseudoaleatoria de un generador.
+
+\subsection*{Formalización matemática de algunas pruebas}
+
+\paragraph{Entropía de Shannon.}
+La entropía mide la incertidumbre media de una variable aleatoria. Para una
+secuencia binaria $X$ con probabilidades $p_0$ y $p_1$ de aparición de 0 y 1,
+respectivamente, la entropía se define como:
+\[
+H(X) = -\sum_{i=0}^{1} p_i \log_2 p_i.
+\]
+El valor máximo es $H(X)=1$, alcanzado cuando $p_0 = p_1 = 0.5$. Desviaciones
+importantes de este valor reflejan sesgos en el generador.
+
+\paragraph{Contraste $\chi^2$ para frecuencia por bloques.}
+Sea una secuencia dividida en $N$ bloques de tamaño $M$. Para cada bloque $j$
+se calcula $\pi_j$, la fracción de unos. El estadístico es:
+\[
+\chi^2 = 4M \sum_{j=1}^{N} \left(\pi_j - \tfrac{1}{2}\right)^2,
+\]
+que bajo la hipótesis nula de aleatoriedad sigue aproximadamente una distribución
+$\chi^2$ con $N$ grados de libertad. Un valor grande de $\chi^2$ indica
+desviaciones significativas en la frecuencia local de unos.
+
+\paragraph{Autocorrelación.}
+La función de autocorrelación para un desfase $k$ se define como:
+\[
+R(k) = \frac{1}{N-k}\sum_{i=1}^{N-k} (2x_i-1)(2x_{i+k}-1).
+\]
+Valores cercanos a cero sugieren independencia entre bits separados $k$
+posiciones. Autocorrelaciones elevadas revelan estructura periódica o dependencia.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lccc}
+\toprule
+Prueba & Parámetro & Rango recomendado & Condición de validez \\
+\midrule
+Frecuencia por bloques & $M$ & 128, 512, 1024 & $N/M \ge 100$ \\
+Entropía aproximada & $m$ & 4--6 & $N \gg 2^{m+1}$ \\
+Serial & $m$ & 2--5 & $N \gg 2^{m}$ \\
+CUSUM & -- & -- & $N$ grande (leyes límite) \\
+\bottomrule
+\end{tabular}
+\caption{Guía práctica de parámetros típicos en pruebas NIST seleccionadas.}
+\end{table}
+
+
+\section*{Importancia de las pruebas estadísticas}
+
+El uso de baterías estadísticas no garantiza la seguridad criptográfica de un
+generador, pero sí actúa como un filtro necesario. Una secuencia que no supera
+estos tests presenta irregularidades explotables en ataques prácticos. Por ello:
+
+\begin{itemize}
+    \item Superar los tests es una \textbf{condición necesaria} pero no suficiente
+    para la seguridad.
+    \item Fallar repetidamente en uno o varios tests indica que el generador
+    \textbf{no debe utilizarse} en aplicaciones críticas.
+    \item El análisis estadístico debe complementarse con métricas estructurales,
+    como la complejidad lineal y el estudio de correlaciones.
+\end{itemize}
+
+\noindent\textit{Contexto normativo.}
+En el ámbito académico, superar estas pruebas se considera un requisito mínimo para proponer un nuevo generador.
+En la práctica industrial, estándares como FIPS~140--3 exigen baterías adicionales (p.\,ej., TestU01, Diehard) e incluso pruebas específicas de dispositivo.
+Este marco regulatorio evidencia que la pseudoaleatoriedad es también un criterio de cumplimiento normativo.
+
+En este TFG, las pruebas estadísticas sirven como primer paso para descartar
+configuraciones de LFSR con deficiencias evidentes antes de aplicar análisis
+más detallados.
+
+
+\section*{Interpretación de los p--valores}
+
+Cada prueba devuelve un \textbf{p--valor} en el rango $[0,1]$. Si $p \geq
+\alpha$ (con $\alpha = 0.01$ en este trabajo), se considera que la secuencia
+\textit{pasa} la prueba. Valores muy bajos ($p < 0.01$) indican que la secuencia
+muestra irregularidades estadísticamente significativas.
+
+Por ejemplo, si una secuencia de 1000 bits contiene 700 unos y 300 ceros, el
+test monobit produce un p--valor prácticamente cero, lo que invalida el generador
+como fuente pseudoaleatoria.
+
+
+\section*{Tamaño muestral, potencia y comparaciones múltiples}
+
+La fiabilidad de los p--valores depende del tamaño muestral $N$. Con $N$ pequeño, los tests carecen de potencia para detectar sesgos sutiles; con $N$ grande, incluso desviaciones mínimas resultan “significativas”. En este trabajo se fijan longitudes $N$ en el rango $[10^5,10^6]$ para equilibrar coste computacional y sensibilidad.
+
+\paragraph{Potencia estadística.}
+La \emph{potencia} es la probabilidad de rechazar la hipótesis nula cuando es falsa. Aumenta con $N$ y con el tamaño del efecto (p.\,ej., un sesgo $|p_1-0.5|$ mayor). Para el test monobit, desviaciones del orden $O(1/\sqrt{N})$ son detectables; por ejemplo, con $N=10^6$, un sesgo de $0.001$ ya puede generar p--valores muy bajos.
+
+\paragraph{Elección de parámetros por prueba.}
+En pruebas con parámetros (p.\,ej., frecuencia por bloques) se recomienda:
+\begin{itemize}
+  \item \textbf{Frecuencia por bloques:} tamaños $M \in \{128,512,1024\}$, con $N/M \ge 100$ bloques para asegurar validez asintótica del contraste.
+  \item \textbf{Entropía aproximada:} longitudes $m \in \{4,5,6\}$ según $N$; valores grandes de $m$ requieren $N$ muy superiores para evitar celdas con conteos casi nulos.
+  \item \textbf{Serial:} mismo criterio que ApEn; aumentar $m$ solo si $N$ lo permite.
+\end{itemize}
+
+\paragraph{Comparaciones múltiples.}
+Al aplicar varias pruebas (y repetidas semillas/configuraciones) se inflan los falsos positivos. Dos estrategias habituales:
+\begin{itemize}
+  \item \textbf{Bonferroni:} usar un umbral $\alpha'=\alpha/K$ si se realizan $K$ tests independientes (conservador).
+  \item \textbf{FDR (Benjamini–Hochberg):} controla la tasa de falsos descubrimientos y es menos conservador cuando $K$ es grande.
+\end{itemize}
+En este TFG se reportan tasas de aceptación por prueba y configuración, y se discuten los resultados en conjunto para mitigar conclusiones espurias.
+
+\paragraph{Repetición por semillas.}
+Se emplean múltiples semillas por configuración (p.\,ej., $r\ge 30$) y se reportan medias y desviaciones estándar de p--valores y tasas de aceptación. Este promediado reduce la varianza muestral y permite comparar configuraciones con mayor robustez.
+
+
+\section*{Resumen del capítulo}
+Se han introducido las nociones de aleatoriedad y pseudoaleatoriedad, clasificado los PRNG más comunes y discutido los postulados de Golomb y la batería NIST.
+También se formalizaron métricas básicas (entropía, $\chi^2$, autocorrelación) y se revisaron casos históricos donde una mala aleatoriedad comprometió sistemas reales.
+Estos elementos proporcionan el marco con el que, en capítulos posteriores, se evaluarán LFSR y combinadores.
+
+
+\section*{Relevancia para este trabajo}
+
+Los postulados de Golomb y los tests NIST seleccionados ofrecen un marco sólido
+para evaluar la calidad pseudoaleatoria de secuencias binarias. En este TFG se
+aplicarán a:
+\begin{itemize}
+    \item Secuencias generadas por LFSR individuales.
+    \item Secuencias producidas por combinadores clásicos: Shrinking, Geffe y
+    Mayoría.
+\end{itemize}
+
+El objetivo es comprobar si los generadores combinados mejoran de forma
+significativa las propiedades pseudoaleatorias respecto a los LFSR simples, y
+si logran superar las limitaciones inherentes a su estructura lineal.

@@ -1,0 +1,89 @@
+\documentclass[12pt,a4paper]{report}
+
+% ==== Idioma y codificación ====
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{csquotes}
+
+% ==== Márgenes y formato ====
+\usepackage{geometry}
+\geometry{a4paper, margin=2.5cm}
+\usepackage{setspace}
+\onehalfspacing
+
+% ==== Figuras, tablas, matemáticas ====
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb,amsthm}
+
+% ==== Código ====
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily\small, frame=single, breaklines=true}
+% \usepackage{minted}
+
+% ==== Bibliografía ====
+\usepackage[backend=biber,style=ieee,sorting=nyt]{biblatex}
+\addbibresource{referencias.bib}
+
+% ==== Hipervínculos ====
+\usepackage[hidelinks]{hyperref}
+
+% ==== Control fino del espacio en títulos ====
+\usepackage{titlesec}
+
+\titleformat{\chapter}[display]
+  {\bfseries\Huge}
+  {\chaptername\ \thechapter}
+  {0.5ex}
+  {}
+\titlespacing*{\chapter}{0pt}{-25pt}{2ex}
+
+\titleformat{\section}{\bfseries\Large}{\thesection}{0.6em}{}
+\titlespacing*{\section}{0pt}{2ex}{1ex}
+
+\titleformat{\subsection}{\bfseries\large}{\thesubsection}{0.6em}{}
+\titlespacing*{\subsection}{0pt}{1.5ex}{0.8ex}
+
+\begin{document}
+\pagenumbering{gobble}
+
+% ============ PORTADA PERSONALIZADA ============
+\begin{titlepage}
+    \centering
+    \vspace*{1cm}
+    \includegraphics[width=8cm]{figures/UGR-Logo.png}\par\vspace{0.5cm}
+
+    {\scshape\LARGE Universidad de Granada \par}
+    {\scshape\Large Escuela Técnica Superior de Ingenierías Informática y de Telecomunicación \par}
+    \vspace{1.2cm}
+
+    {\bfseries\Huge
+    Estudio y optimización de secuencias de bits pseudoaleatorias\\
+    basadas en LFSR para cifrado de flujo \par}
+    \vspace{1.5cm}
+
+    {\Large \textbf{Autor:} Joaquín Sergio García Ibáñez \par}
+    \vspace{0.4cm}
+    {\Large \textbf{Tutor:} Jesus García Miranda \par}
+
+    \vfill
+    {\large \today\par}
+\end{titlepage}
+% ===============================================
+
+% Índice y numeración normal
+\tableofcontents
+\cleardoublepage
+\pagenumbering{arabic}
+
+% ====== CAPÍTULOS =====
+\input{chapters/01-introduccion}
+\input{chapters/02-pseudoaleatoriedad}
+\input{chapters/03-complejidad-lineal}
+\input{chapters/04-analisis-resultados}
+\input{chapters/05-conclusiones}
+
+% ====== BIBLIOGRAFÍA =====
+\printbibliography
+\end{document}
